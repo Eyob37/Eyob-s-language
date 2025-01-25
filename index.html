@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eyob's Language Converter</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f9fafb;
+            color: #333;
+        }
+
+        h1 {
+            background-color: #4caf50;
+            color: white;
+            padding: 15px 0;
+            margin: 0;
+            font-size: 24px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        input, select, button, textarea {
+            margin: 10px auto;
+            display: block;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        input, select, button {
+            padding: 12px 15px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        textarea {
+            padding: 15px;
+            height: 200px;
+            width: 90%;
+            max-width: 600px;
+            resize: none;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #EL {
+            color: #555;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        @media (max-width: 768px) {
+            input, select, button, textarea {
+                font-size: 14px;
+            }
+
+            textarea {
+                height: 150px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Eyob's Language Converter</h1>
+    Normal sentence
+    <input type="text" id="Original-text" placeholder="Enter text here">
+    <select id="selector">
+        <option value="te-EL">Convert to Eyob's Language</option>
+        <option value="EL-te">Convert from Eyob's Language</option>
+    </select>
+    <button onclick="change()">Convert</button><br>
+    Eyob's language
+    <textarea placeholder="Message" id="EL"></textarea>
+
+    <script>
+        const $ = (selector) => document.getElementById(selector);
+
+const OT = $("Original-text");
+const EL = $("EL");
+const Selector = $("selector");
+
+function change() {
+    if (Selector.value === "te-EL") {
+        const inputText = OT.value.trim();
+        if (!inputText) {
+            EL.textContent = "Please enter some text!";
+            return;
+        }
+
+        const text = inputText.replace(/\s+/g, '').toLowerCase();
+        const words = inputText.split(/\s+/);
+        const letterCount = {};
+        const full = [];
+        const wordSpace = [];
+        const repetition = [];
+        const repeatedPlace = {};
+
+        for (let i = 0; i < text.length; i++) {
+            const letter = text[i];
+            const position = i + 1;
+
+            if (!letterCount[letter]) {
+                letterCount[letter] = { count: 0, positions: [] };
+            }
+            letterCount[letter].count++;
+            letterCount[letter].positions.push(position);
+        }
+
+        for (const letter in letterCount) {
+            const quantity = letterCount[letter].count;
+            const letterValue = letter.charCodeAt(0) - 96;
+            full.push(quantity * letterValue);
+            repetition.push(quantity);
+        }
+
+        for (const word of words) {
+            wordSpace.push(word.length);
+        }
+
+        for (const letter in letterCount) {
+            const positions = letterCount[letter].positions.join(',');
+            repeatedPlace[letter] = `${letterCount[letter].count}(${positions})`;
+        }
+
+        const repeatedPlaceFormatted = Object.values(repeatedPlace).join(',');
+        const ELString = `(((${full.join(',')}), (${wordSpace.join(',')}), (${repetition.join(',')}), (${repeatedPlaceFormatted})))`;
+        EL.textContent = ELString;
+
+    } else if (Selector.value === "EL-te") {
+        const inputText = EL.value.trim();
+        if (!inputText.startsWith("(((") || !inputText.endsWith(")))")) {
+            OT.value = "Invalid Eyob's Language format!";
+            return;
+        }
+
+        try {
+            const parts = inputText.slice(3, -3).split("), (");
+            const full = parts[0].split(',').map(Number);
+            const WS = parts[1].split(',').map(Number);
+            const R = parts[2].split(',').map(Number);
+            let RP = parts[3];
+
+            RP = RP.match(/(\d+)\((.*?)\)/g).map(group => group.match(/\((.*?)\)/)[1].split(',').map(Number));
+
+            let obj = {};
+            for (let i = 0; i < full.length; i++) {
+                let divisionResult = Math.floor(full[i] / R[i]);
+                let charKey = String.fromCharCode(divisionResult + 96);
+                obj[charKey] = RP[i];
+            }
+
+            let placeholders = "";
+            for (const wordLength of WS) {
+                placeholders += "#".repeat(wordLength) + " ";
+            }
+            placeholders = placeholders.trim().split("");
+            for (const [letter, positions] of Object.entries(obj)) {
+                if (!positions) continue;                
+                for (const position of positions) {    
+                    let space = 0;                                 
+                    for (let i = 0; i < placeholders.length; i++) {
+                        if (placeholders[i] === "#" || placeholders[i] === " ") {                            
+                            if(placeholders[i] === " "){
+                                space++;
+                            }                      
+                            if (i+1-space === position) {                                                               
+                                placeholders[i] = letter;
+                                console.log(placeholders[i]);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            OT.value = placeholders.join("").trim();
+        } catch (error) {
+            OT.value = "An error occurred during conversion!";
+        }
+    } else {
+        OT.value = "Invalid selection!";
+    }
+}
+
+    </script>
+</body>
+</html>
